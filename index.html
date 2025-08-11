@@ -33,25 +33,11 @@
         <div class="muted small">Manage vehicles, invoices and tempo sheets</div>
       </div>
       <div class="actions">
-        <button id="btnAddVehicle" class="btn">Add Vehicle</button>
-        <button id="btnAddInvoice" class="btn">Add Invoice</button>
-        <button id="btnCreateTempo" class="btn">Create Tempo Sheet</button>
+        <button id="openModal" class="btn">Add Tempo</button>
       </div>
     </section>
 
-    <!-- Lists -->
-    <section class="row">
-      <aside class="card side" id="vehiclesCard">
-        <h2>Vehicles</h2>
-        <div id="vehiclesList">Loading…</div>
-      </aside>
-
-      <section class="card main" id="invoicesCard">
-        <h2>Invoices</h2>
-        <div id="invoicesList">Loading…</div>
-      </section>
-    </section>
-
+    <!-- Tempo List -->
     <section class="card tempos-card">
       <div class="tempos-header">
         <h2>Tempo Sheets</h2>
@@ -59,7 +45,6 @@
           <label class="muted small">Date filter</label>
           <input id="filterDate" type="date">
           <button id="clearFilter" class="btn ghost small">Clear</button>
-          <button id="syncRemote" class="btn small">Sync</button>
         </div>
       </div>
       <div id="temposList">Loading…</div>
@@ -70,25 +55,32 @@
   <div id="modal" class="modal-hidden">
     <div class="modal-card">
       <div class="modal-header">
-        <strong id="modalTitle"></strong>
-        <button id="modalClose" class="icon-btn">✖</button>
+        <strong id="modalTitle">Add Tempo</strong>
+        <button id="closeModal" class="icon-btn">✖</button>
       </div>
-      <div id="modalBody"></div>
+      <div id="modalBody">
+        <form id="tempoForm">
+          <input type="text" id="tempoName" placeholder="Tempo Name" required>
+          <input type="text" id="tempoCapacity" placeholder="Capacity" required>
+          <input type="text" id="tempoDriver" placeholder="Driver Name" required>
+          <input type="file" id="tempoFile">
+          <button type="submit" class="btn">Save</button>
+        </form>
+      </div>
     </div>
   </div>
 
-  <!-- Firebase Config (directly inside file instead of extra firebase-config.js) -->
+  <!-- Firebase Config -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDqDdvasu0UTUYl1ZZeLKFvCiJcmWk80-A",
       authDomain: "dispatch-f50ac.firebaseapp.com",
       projectId: "dispatch-f50ac",
-      storageBucket: "dispatch-f50ac.firebasestorage.app",
+      storageBucket: "dispatch-f50ac.appspot.com", // FIXED ✅
       messagingSenderId: "898233336697",
       appId: "1:898233336697:web:8d96cb36c5766b519ea5a8",
       measurementId: "G-W5LMDX08P3"
     };
-
     firebase.initializeApp(firebaseConfig);
     if (firebase.analytics) {
       firebase.analytics();
