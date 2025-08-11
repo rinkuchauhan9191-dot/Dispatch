@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tempo Sheet System — Dispatch</title>
 
-  <!-- link to external stylesheet (you will get this file next) -->
+  <!-- External stylesheet -->
   <link rel="stylesheet" href="styles.css">
 
-  <!-- Firebase compat libs (used by app.js) -->
+  <!-- Firebase compat libraries (v9 compat mode for older code syntax) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
@@ -65,7 +66,7 @@
     </section>
   </main>
 
-  <!-- Modal (for forms & tempo view) -->
+  <!-- Modal -->
   <div id="modal" class="modal-hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -76,17 +77,26 @@
     </div>
   </div>
 
-  <!-- firebase-config.js should define window.FIREBASE_CONFIG = { ... } -->
-  <!-- We'll load it before app.js so app can initialize Firebase if config present -->
-  <script src="firebase-config.js"></script>
+  <!-- Firebase Config (directly inside file instead of extra firebase-config.js) -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqDdvasu0UTUYl1ZZeLKFvCiJcmWk80-A",
+      authDomain: "dispatch-f50ac.firebaseapp.com",
+      projectId: "dispatch-f50ac",
+      storageBucket: "dispatch-f50ac.firebasestorage.app",
+      messagingSenderId: "898233336697",
+      appId: "1:898233336697:web:8d96cb36c5766b519ea5a8",
+      measurementId: "G-W5LMDX08P3"
+    };
 
-  <!-- main app JS (you will get this file next) -->
+    firebase.initializeApp(firebaseConfig);
+    if (firebase.analytics) {
+      firebase.analytics();
+    }
+  </script>
+
+  <!-- Main App JS -->
   <script src="app.js"></script>
 </body>
 </html>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js"></script>
 
-<!-- Firebase Config -->
-<script src="firebase-config.js"></script>
