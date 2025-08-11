@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tempo Sheet System — Dispatch</title>
+
+  <!-- link to external stylesheet (you will get this file next) -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Firebase compat libs (used by app.js) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <strong>Dispatch System</strong>
+        <div class="muted small">Vehicles · Invoices · Tempo Sheets — Firebase Storage + Realtime DB</div>
+      </div>
+      <div class="muted small">Auto-sync (after Firebase setup)</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Controls -->
+    <section class="card controls-row">
+      <div>
+        <strong>Dashboard</strong>
+        <div class="muted small">Manage vehicles, invoices and tempo sheets</div>
+      </div>
+      <div class="actions">
+        <button id="btnAddVehicle" class="btn">Add Vehicle</button>
+        <button id="btnAddInvoice" class="btn">Add Invoice</button>
+        <button id="btnCreateTempo" class="btn">Create Tempo Sheet</button>
+      </div>
+    </section>
+
+    <!-- Lists -->
+    <section class="row">
+      <aside class="card side" id="vehiclesCard">
+        <h2>Vehicles</h2>
+        <div id="vehiclesList">Loading…</div>
+      </aside>
+
+      <section class="card main" id="invoicesCard">
+        <h2>Invoices</h2>
+        <div id="invoicesList">Loading…</div>
+      </section>
+    </section>
+
+    <section class="card tempos-card">
+      <div class="tempos-header">
+        <h2>Tempo Sheets</h2>
+        <div class="filter-row">
+          <label class="muted small">Date filter</label>
+          <input id="filterDate" type="date">
+          <button id="clearFilter" class="btn ghost small">Clear</button>
+          <button id="syncRemote" class="btn small">Sync</button>
+        </div>
+      </div>
+      <div id="temposList">Loading…</div>
+    </section>
+  </main>
+
+  <!-- Modal (for forms & tempo view) -->
+  <div id="modal" class="modal-hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <strong id="modalTitle"></strong>
+        <button id="modalClose" class="icon-btn">✖</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- firebase-config.js should define window.FIREBASE_CONFIG = { ... } -->
+  <!-- We'll load it before app.js so app can initialize Firebase if config present -->
+  <script src="firebase-config.js"></script>
+
+  <!-- main app JS (you will get this file next) -->
+  <script src="app.js"></script>
+</body>
+</html>
