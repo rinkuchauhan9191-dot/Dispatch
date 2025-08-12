@@ -1,94 +1,681 @@
 <!doctype html>
-<html lang="hi">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tempo Sheet System — Dispatch</title>
-
-  <!-- External stylesheet -->
-  <link rel="stylesheet" href="styles.css">
-
-  <!-- Firebase compat libraries (v9 compat mode for older code syntax) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <title>Vehicle · Invoice · Tempo Sheet Manager (Firebase)</title>
+  <meta name="description" content="Vehicle, Invoice and Tempo Sheet manager - single file app with Firebase Firestore & Storage" />
+  <style>
+    /* Basic UI styling - edit as needed */
+    :root{--bg:#f3f6f9;--card:#fff;--muted:#6c757d;--primary:#007bff;--success:#28a745;--danger:#dc3545}
+    *{box-sizing:border-box}
+    body{font-family:Inter,Segoe UI,Arial; margin:0; background:var(--bg); color:#222}
+    header{background:#0b5ed7;color:white;padding:14px 18px}
+    header h1{margin:0;font-size:18px}
+    .container{max-width:1100px;margin:18px auto;padding:12px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .card{background:var(--card);border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);flex:1;min-width:280px}
+    h2{margin:6px 0 12px;font-size:16px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
+    th{background:#f8fafc;color:#333}
+    button{padding:6px 10px;border-radius:6px;border:0;cursor:pointer}
+    .btn {background:var(--primary); color:white}
+    .btn-success{background:var(--success); color:white}
+    .btn-danger{background:var(--danger); color:white}
+    .btn-muted{background:#6c757d;color:white}
+    .small{font-size:13px;padding:4px 8px}
+    .actions button{margin-right:6px}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:12px}
+    .modal.open{display:flex}
+    .modal-content{width:100%;max-width:720px;background:white;padding:16px;border-radius:8px;max-height:90vh;overflow:auto}
+    .form-row{display:flex;gap:8px}
+    .form-row > *{flex:1}
+    label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted)}
+    input, select, textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd}
+    .product-row{display:flex;gap:8px;margin-bottom:6px}
+    .product-row input{flex:1}
+    .muted{color:var(--muted);font-size:13px}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;background:#eef; color:#0b5ed7}
+    .file-indicator{font-size:12px;color:green}
+    footer{max-width:1100px;margin:12px auto;text-align:center;color:var(--muted);font-size:13px}
+    @media (max-width:720px){ .form-row{flex-direction:column} .row{flex-direction:column} }
+    /* Print rules: we create a dedicated print window or use @media print when needed */
+  </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-row">
-      <div>
-        <strong>Dispatch System</strong>
-        <div class="muted small">Vehicles · Invoices · Tempo Sheets — Firebase Storage + Realtime DB</div>
-      </div>
-      <div class="muted small">Auto-sync (after Firebase setup)</div>
-    </div>
+  <header>
+    <h1>Vehicle · Invoice · Tempo Sheet Manager</h1>
   </header>
 
-  <main class="container">
+  <div class="container">
     <!-- Controls -->
-    <section class="card controls-row">
-      <div>
-        <strong>Dashboard</strong>
-        <div class="muted small">Manage vehicles, invoices and tempo sheets</div>
-      </div>
-      <div class="actions">
-        <button id="openModal" class="btn">Add Tempo</button>
-      </div>
-    </section>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="btn" id="btnAddVehicle">Add Vehicle</button>
+      <button class="btn" id="btnAddInvoice">Add Invoice</button>
+      <button class="btn" id="btnCreateTempo">Create Tempo Sheet</button>
+      <div style="margin-left:auto" id="syncStatus"><span class="muted">Sync: unknown</span></div>
+    </div>
 
-    <!-- Tempo List -->
-    <section class="card tempos-card">
-      <div class="tempos-header">
+    <!-- Dashboard cards -->
+    <div class="row">
+      <div class="card" style="flex: 1 1 380px;">
+        <h2>Vehicles</h2>
+        <table id="vehicleTable">
+          <thead><tr><th>Vehicle No</th><th>Driver</th><th>Contact</th><th>Alt Contact</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="flex: 1 1 380px;">
+        <h2>Invoices</h2>
+        <table id="invoiceTable">
+          <thead><tr><th>Invoice No</th><th>Date</th><th>Party</th><th>Products</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="flex: 1 1 100%;">
         <h2>Tempo Sheets</h2>
-        <div class="filter-row">
-          <label class="muted small">Date filter</label>
-          <input id="filterDate" type="date">
-          <button id="clearFilter" class="btn ghost small">Clear</button>
-        </div>
-      </div>
-      <div id="temposList">Loading…</div>
-    </section>
-  </main>
-
-  <!-- Modal -->
-  <div id="modal" class="modal-hidden">
-    <div class="modal-card">
-      <div class="modal-header">
-        <strong id="modalTitle">Add Tempo</strong>
-        <button id="closeModal" class="icon-btn">✖</button>
-      </div>
-      <div id="modalBody">
-        <form id="tempoForm">
-          <input type="text" id="tempoName" placeholder="Tempo Name" required>
-          <input type="text" id="tempoCapacity" placeholder="Capacity" required>
-          <input type="text" id="tempoDriver" placeholder="Driver Name" required>
-          <input type="file" id="tempoFile">
-          <button type="submit" class="btn">Save</button>
-        </form>
+        <table id="tempoTable">
+          <thead><tr><th>Tempo ID</th><th>Vehicle</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
   </div>
 
-  <!-- Firebase Config -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDqDdvasu0UTUYl1ZZeLKFvCiJcmWk80-A",
-      authDomain: "dispatch-f50ac.firebaseapp.com",
-      projectId: "dispatch-f50ac",
-      storageBucket: "dispatch-f50ac.appspot.com", // FIXED ✅
-      messagingSenderId: "898233336697",
-      appId: "1:898233336697:web:8d96cb36c5766b519ea5a8",
-      measurementId: "G-W5LMDX08P3"
-    };
-    firebase.initializeApp(firebaseConfig);
-    if (firebase.analytics) {
-      firebase.analytics();
-    }
-  </script>
+  <footer>
+    Replace Firebase config below with your project's config. Firestore & Storage must be enabled. This single-file app uses Firebase v9 modular CDN.
+  </footer>
 
-  <!-- Main App JS -->
-  <script src="app.js"></script>
+  <!-- ===== Modals ===== -->
+  <!-- Add Vehicle Modal -->
+  <div class="modal" id="modalVehicle">
+    <div class="modal-content">
+      <h3>Add Vehicle</h3>
+      <div class="form-row">
+        <div>
+          <label>Vehicle Number</label>
+          <input id="vehicle_number" placeholder="eg. MH12AB1234" />
+        </div>
+        <div>
+          <label>Driver Name</label>
+          <input id="vehicle_driver" placeholder="Driver name" />
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:8px">
+        <div>
+          <label>Contact</label><input id="vehicle_contact" placeholder="Phone" />
+        </div>
+        <div>
+          <label>Alternate Contact</label><input id="vehicle_alt_contact" placeholder="Alt phone" />
+        </div>
+      </div>
+      <div style="margin-top:12px;text-align:right">
+        <button onclick="closeModal('modalVehicle')" class="btn-muted small">Cancel</button>
+        <button onclick="saveVehicle()" class="btn-success small">Save Vehicle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Invoice Modal -->
+  <div class="modal" id="modalInvoice">
+    <div class="modal-content">
+      <h3>Add Invoice</h3>
+      <div>
+        <label>Invoice Number</label><input id="inv_number" placeholder="INV-2025-001" />
+      </div>
+      <div style="margin-top:8px">
+        <label>Date</label><input id="inv_date" type="date" />
+      </div>
+      <div style="margin-top:8px">
+        <label>Party Name</label><input id="inv_party" placeholder="Party name" />
+      </div>
+
+      <div style="margin-top:10px">
+        <label>Products <span class="muted">(use + to add more)</span></label>
+        <div id="productsContainer"></div>
+        <div style="margin-top:6px">
+          <button class="small btn" onclick="addProductRow()">+ Add Product</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;text-align:right">
+        <button onclick="closeModal('modalInvoice')" class="btn-muted small">Cancel</button>
+        <button onclick="saveInvoice()" class="btn-success small">Save Invoice</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Tempo Modal -->
+  <div class="modal" id="modalTempo">
+    <div class="modal-content">
+      <h3>Create Tempo Sheet</h3>
+      <div class="form-row">
+        <div>
+          <label>Select Vehicle</label>
+          <select id="tempo_vehicle_select"></select>
+        </div>
+        <div>
+          <label>Tempo Date</label>
+          <input id="tempo_date" type="date" />
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        <label>Add Invoice to Tempo</label>
+        <div class="form-row">
+          <input id="tempo_invoice_input" placeholder="Enter invoice number and press Fetch" />
+          <button class="small btn" onclick="fetchInvoiceForTempo()">Fetch</button>
+          <button class="small btn" onclick="openInvoiceSearch()">Search</button>
+        </div>
+        <div style="margin-top:8px">
+          <table id="tempoInvoicesPreview" style="width:100%">
+            <thead><tr><th>Invoice No</th><th>Party</th><th>Products</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;text-align:right">
+        <button onclick="closeModal('modalTempo')" class="btn-muted small">Cancel</button>
+        <button onclick="saveTempo()" class="btn-success small">Save Tempo Sheet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Open & Load Modal (for tempo) -->
+  <div class="modal" id="modalTempoDetail">
+    <div class="modal-content">
+      <h3>Tempo Detail — <span id="detailTempoId"></span></h3>
+      <div style="margin-bottom:8px">
+        <strong>Vehicle:</strong> <span id="detailVehicle"></span> |
+        <strong>Date:</strong> <span id="detailDate"></span>
+      </div>
+
+      <table id="tempoDetailTable">
+        <thead><tr><th>Invoice</th><th>Party</th><th>Products</th><th>Loaded</th><th>LR</th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <div style="margin-top:10px;text-align:right">
+        <button class="btn-muted small" onclick="closeModal('modalTempoDetail')">Close</button>
+        <button class="btn-success small" onclick="saveTempoLoadingStatus()">Save Loading Status</button>
+        <button class="small" onclick="printTempoFromModal()">Print (Preview)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input used for LR uploads -->
+  <input type="file" id="hiddenFile" style="display:none" />
+
+  <!-- ===== Firebase + App Logic ===== -->
+  <script type="module">
+  /* -------------------------
+     IMPORTANT:
+     1) Replace firebaseConfig below with your project's config.
+     2) Enable Firestore and Storage in Firebase console.
+     3) Add Firestore rules / Storage rules as appropriate.
+     ------------------------- */
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot,
+           enableIndexedDbPersistence, where, getDocs, doc, getDoc,
+           setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-storage.js";
+
+  // ----- Paste your Firebase config here -----
+  const firebaseConfig = {
+    apiKey: "AIzaSyAXkps82nCwh9ci_n098IHNImAjg2njHPE",
+    authDomain: "dispatchpro-f0815.firebaseapp.com",
+    projectId: "dispatchpro-f0815",
+    storageBucket: "dispatchpro-f0815.firebasestorage.app",
+    messagingSenderId: "368070701176",
+    appId: "G-M0WJXPB8M5"
+  };
+  // ------------------------------------------
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  // Try enable offline persistence
+  enableIndexedDbPersistence(db).catch(err => {
+    console.warn("Could not enable persistence:", err && err.code ? err.code : err);
+  });
+
+  // ========== Helper: modal open/close ==========
+  function openModal(id){ document.getElementById(id).classList.add('open'); }
+  function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+  // ========== Sync status (basic) ==========
+  const syncStatusEl = document.getElementById('syncStatus');
+  window.addEventListener('online', ()=> syncStatusEl.innerHTML = '<span class="muted">Sync: Online</span>');
+  window.addEventListener('offline', ()=> syncStatusEl.innerHTML = '<span class="muted">Sync: Offline</span>');
+  if(navigator.onLine) syncStatusEl.innerHTML = '<span class="muted">Sync: Online</span>'; else syncStatusEl.innerHTML = '<span class="muted">Sync: Offline</span>';
+
+  // ========== Collections ==========
+  const vehiclesCol = collection(db,'vehicles');
+  const invoicesCol = collection(db,'invoices');
+  const temposCol = collection(db,'tempo_sheets');
+
+  // ======== UI DOM refs ========
+  const vehicleTbody = document.querySelector('#vehicleTable tbody');
+  const invoiceTbody = document.querySelector('#invoiceTable tbody');
+  const tempoTbody = document.querySelector('#tempoTable tbody');
+  const tempoVehicleSelect = document.getElementById('tempo_vehicle_select');
+  const tempoInvoicesPreviewTbody = document.querySelector('#tempoInvoicesPreview tbody');
+  const tempoDetailTableBody = document.querySelector('#tempoDetailTable tbody');
+  const hiddenFile = document.getElementById('hiddenFile');
+
+  // ==== Modal open buttons ====
+  document.getElementById('btnAddVehicle').addEventListener('click', ()=>{
+    document.getElementById('vehicle_number').value='';
+    document.getElementById('vehicle_driver').value='';
+    document.getElementById('vehicle_contact').value='';
+    document.getElementById('vehicle_alt_contact').value='';
+    openModal('modalVehicle');
+  });
+  document.getElementById('btnAddInvoice').addEventListener('click', ()=>{
+    document.getElementById('inv_number').value='';
+    document.getElementById('inv_date').value='';
+    document.getElementById('inv_party').value='';
+    document.getElementById('productsContainer').innerHTML='';
+    addProductRow(); // one by default
+    openModal('modalInvoice');
+  });
+  document.getElementById('btnCreateTempo').addEventListener('click', ()=>{
+    document.getElementById('tempo_invoice_input').value='';
+    tempoInvoicesPreviewTbody.innerHTML='';
+    document.getElementById('tempo_date').value = new Date().toISOString().slice(0,10);
+    openModal('modalTempo');
+  });
+
+  // ========== Vehicles: add & live list ==========
+  async function saveVehicle(){
+    const vehicleNumber = document.getElementById('vehicle_number').value.trim();
+    if(!vehicleNumber){ alert('Enter vehicle number'); return; }
+    try{
+      await addDoc(vehiclesCol, {
+        vehicleNumber,
+        driverName: document.getElementById('vehicle_driver').value.trim(),
+        contact: document.getElementById('vehicle_contact').value.trim(),
+        altContact: document.getElementById('vehicle_alt_contact').value.trim(),
+        createdAt: serverTimestamp()
+      });
+      closeModal('modalVehicle');
+    }catch(e){ console.error(e); alert('Error saving vehicle'); }
+  }
+
+  // subscribe vehicles
+  onSnapshot(query(vehiclesCol, orderBy('createdAt','desc')), snap => {
+    vehicleTbody.innerHTML='';
+    tempoVehicleSelect.innerHTML = '<option value="">-- Select Vehicle --</option>';
+    snap.forEach(d => {
+      const v = d.data();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(v.vehicleNumber||'')}</td>
+                      <td>${escapeHtml(v.driverName||'')}</td>
+                      <td>${escapeHtml(v.contact||'')}</td>
+                      <td>${escapeHtml(v.altContact||'')}</td>`;
+      vehicleTbody.appendChild(tr);
+      // add to select
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = `${v.vehicleNumber} — ${v.driverName||''}`;
+      tempoVehicleSelect.appendChild(opt);
+    });
+  });
+
+  // ========== Invoices: products handling, save, list ==========
+  function addProductRow(code='', qty=''){
+    const container = document.getElementById('productsContainer');
+    const row = document.createElement('div'); row.className='product-row';
+    row.innerHTML = `<input placeholder="Product Code" value="${escapeHtmlAttr(code)}"/>
+                     <input type="number" placeholder="Quantity" value="${escapeHtmlAttr(qty)}" />
+                     <button class="small" title="Remove" type="button">−</button>`;
+    row.querySelector('button').addEventListener('click', ()=> row.remove());
+    container.appendChild(row);
+  }
+
+  async function saveInvoice(){
+    const invNumber = document.getElementById('inv_number').value.trim();
+    if(!invNumber){ alert('Invoice number required'); return; }
+    const date = document.getElementById('inv_date').value;
+    const party = document.getElementById('inv_party').value.trim();
+    const rows = Array.from(document.querySelectorAll('#productsContainer .product-row'));
+    const products = rows.map(r => ({ productCode: r.children[0].value.trim(), quantity: Number(r.children[1].value||0) }))
+                         .filter(p => p.productCode);
+    if(products.length===0){ alert('Add at least one product'); return; }
+    try{
+      await addDoc(invoicesCol, {
+        invoiceNumber: invNumber,
+        date: date || new Date().toISOString().slice(0,10),
+        partyName: party,
+        products,
+        createdAt: serverTimestamp()
+      });
+      closeModal('modalInvoice');
+    }catch(e){ console.error(e); alert('Error saving invoice'); }
+  }
+
+  // subscribe invoices
+  onSnapshot(query(invoicesCol, orderBy('createdAt','desc')), snap => {
+    invoiceTbody.innerHTML='';
+    snap.forEach(d=>{
+      const inv = d.data();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(inv.invoiceNumber||'')}</td>
+                      <td>${escapeHtml(inv.date||'')}</td>
+                      <td>${escapeHtml(inv.partyName||'')}</td>
+                      <td>${(inv.products||[]).length}</td>`;
+      invoiceTbody.appendChild(tr);
+    });
+  });
+
+  // ========== Tempo Sheets: create, list, detail ==========
+  // hold preview invoices to add to tempo (local until saved)
+  let tempoPreviewInvoices = []; // {id, data}
+
+  async function fetchInvoiceForTempo(){
+    const invNumber = document.getElementById('tempo_invoice_input').value.trim();
+    if(!invNumber){ alert('Enter invoice number'); return; }
+    try{
+      // search invoices where invoiceNumber == invNumber
+      const q = query(invoicesCol, where('invoiceNumber','==',invNumber));
+      const snap = await getDocs(q);
+      if(snap.empty){ alert('Invoice not found'); return; }
+      // if multiple, take first (could show choices)
+      snap.forEach(docSnap => {
+        const inv = docSnap.data();
+        tempoPreviewInvoices.push({ id: docSnap.id, data: inv });
+      });
+      renderTempoPreview();
+    }catch(e){ console.error(e); alert('Error fetching invoice'); }
+  }
+
+  // a simple invoice search modal (optional): opens a list to pick invoice
+  function openInvoiceSearch(){
+    // For simplicity: show prompt to enter invoice prefix and list matches in console.
+    const q = prompt('Enter invoice number or part of it to search:');
+    if(!q) return;
+    (async ()=>{
+      try{
+        // naive search: fetch all invoices and filter (small datasets ok). For production add indexes.
+        const snap = await getDocs(query(invoicesCol, orderBy('createdAt','desc')));
+        const matches = [];
+        snap.forEach(s => {
+          const d = s.data();
+          if((d.invoiceNumber||'').toLowerCase().includes(q.toLowerCase())) matches.push({id:s.id,data:d});
+        });
+        if(matches.length===0){ alert('No matches'); return; }
+        // show first 10 in prompt to choose (simple)
+        const choices = matches.slice(0,10).map((m,i)=> `${i+1}. ${m.data.invoiceNumber} — ${m.data.partyName}`).join('\n');
+        const sel = prompt('Choose invoice number:\n' + choices + '\nEnter number (1-'+Math.min(matches.length,10)+')');
+        const idx = Number(sel)-1;
+        if(isFinite(idx) && matches[idx]) { tempoPreviewInvoices.push(matches[idx]); renderTempoPreview(); }
+      }catch(e){ console.error(e); alert('Search error'); }
+    })();
+  }
+
+  function renderTempoPreview(){
+    tempoInvoicesPreviewTbody.innerHTML='';
+    tempoPreviewInvoices.forEach((invObj, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(invObj.data.invoiceNumber||'')}</td>
+                      <td>${escapeHtml(invObj.data.partyName||'')}</td>
+                      <td>${escapeHtml((invObj.data.products||[]).map(p=>p.productCode+ '×'+p.quantity).join(', '))}</td>
+                      <td><button class="small btn-muted" data-idx="${idx}">Remove</button></td>`;
+      tr.querySelector('button').addEventListener('click', (e)=>{
+        tempoPreviewInvoices.splice(Number(e.target.dataset.idx),1); renderTempoPreview();
+      });
+      tempoInvoicesPreviewTbody.appendChild(tr);
+    });
+  }
+
+  async function saveTempo(){
+    const vehicleId = tempoVehicleSelect.value;
+    if(!vehicleId){ alert('Select a vehicle'); return; }
+    if(tempoPreviewInvoices.length===0){ alert('Add at least one invoice to tempo'); return; }
+    const tempoDate = document.getElementById('tempo_date').value || new Date().toISOString().slice(0,10);
+    try{
+      // get vehicle snapshot for convenience
+      const vehicleDoc = await getDoc(doc(db,'vehicles',vehicleId));
+      const vehicleData = vehicleDoc.exists() ? vehicleDoc.data() : { vehicleNumber:'', driverName:'' };
+
+      // prepare invoice snapshots - embed necessary fields into tempo doc
+      const invoicesForTempo = tempoPreviewInvoices.map(invObj => ({
+        invoiceId: invObj.id,
+        invoiceNumber: invObj.data.invoiceNumber,
+        date: invObj.data.date,
+        partyName: invObj.data.partyName,
+        products: invObj.data.products || [],
+        loaded: false,
+        loadedAt: null,
+        lrFileUrl: null,
+        lrFileName: null
+      }));
+
+      const tempoDocRef = await addDoc(temposCol, {
+        tempoId: 'TS-' + Date.now(),
+        vehicleId,
+        vehicleNumber: vehicleData.vehicleNumber || '',
+        date: tempoDate,
+        invoices: invoicesForTempo,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      // reset preview and close modal
+      tempoPreviewInvoices = [];
+      renderTempoPreview();
+      closeModal('modalTempo');
+      alert('Tempo saved: ' + tempoDocRef.id);
+    }catch(e){ console.error(e); alert('Error saving tempo'); }
+  }
+
+  // subscribe tempos
+  onSnapshot(query(temposCol, orderBy('createdAt','desc')), snap => {
+    tempoTbody.innerHTML='';
+    snap.forEach(d=>{
+      const t = d.data();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(t.tempoId||d.id)}</td>
+                      <td>${escapeHtml(t.vehicleNumber||'')}</td>
+                      <td>${escapeHtml(t.date||'')}</td>
+                      <td>${escapeHtml(t.status||'')}</td>
+                      <td class="actions"></td>`;
+      const actionsTd = tr.querySelector('.actions');
+      // Open & Load
+      const btnOpen = document.createElement('button'); btnOpen.className='small btn-muted'; btnOpen.textContent='Open & Load';
+      btnOpen.addEventListener('click', ()=> openTempoDetail(d.id,t));
+      actionsTd.appendChild(btnOpen);
+      // Upload LR (shortcut) - opens detail
+      const btnUpload = document.createElement('button'); btnUpload.className='small'; btnUpload.textContent='Upload LR';
+      btnUpload.addEventListener('click', ()=> openTempoDetail(d.id,t));
+      actionsTd.appendChild(btnUpload);
+      // Print
+      const btnPrint = document.createElement('button'); btnPrint.className='small btn-success'; btnPrint.textContent='Print';
+      btnPrint.addEventListener('click', ()=> printTempoById(d.id));
+      actionsTd.appendChild(btnPrint);
+
+      tempoTbody.appendChild(tr);
+    });
+  });
+
+  // ======= Open tempo detail, allow scanning, uploading LR, save status =======
+  let currentTempoDocId = null;
+  let currentTempoDocData = null; // local mirror for editing loaded status & lr url
+
+  async function openTempoDetail(docId, tempoDataFromSnapshot){
+    // load latest doc
+    try{
+      const docSnap = await getDoc(doc(db,'tempo_sheets',docId));
+      if(!docSnap.exists()){ alert('Tempo not found'); return; }
+      currentTempoDocId = docId;
+      currentTempoDocData = docSnap.data();
+      document.getElementById('detailTempoId').textContent = currentTempoDocData.tempoId || docId;
+      document.getElementById('detailVehicle').textContent = currentTempoDocData.vehicleNumber || '';
+      document.getElementById('detailDate').textContent = currentTempoDocData.date || '';
+      renderTempoDetailTable();
+      openModal('modalTempoDetail');
+    }catch(e){ console.error(e); alert('Error opening tempo'); }
+  }
+
+  function renderTempoDetailTable(){
+    tempoDetailTableBody.innerHTML = '';
+    (currentTempoDocData.invoices || []).forEach((inv, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(inv.invoiceNumber||'')}</td>
+                      <td>${escapeHtml(inv.partyName||'')}</td>
+                      <td>${escapeHtml((inv.products||[]).map(p=>p.productCode+'×'+p.quantity).join(', '))}</td>
+                      <td></td>
+                      <td></td>`;
+      // Loaded toggle (Scan)
+      const loadedTd = tr.children[3];
+      const btnScan = document.createElement('button'); btnScan.className='small';
+      btnScan.textContent = inv.loaded ? 'Loaded ✓' : 'Scan';
+      btnScan.style.background = inv.loaded ? 'lightgreen' : '';
+      btnScan.addEventListener('click', ()=>{
+        // toggle locally
+        currentTempoDocData.invoices[idx].loaded = !currentTempoDocData.invoices[idx].loaded;
+        if(currentTempoDocData.invoices[idx].loaded) currentTempoDocData.invoices[idx].loadedAt = new Date().toISOString();
+        else currentTempoDocData.invoices[idx].loadedAt = null;
+        renderTempoDetailTable();
+      });
+      loadedTd.appendChild(btnScan);
+
+      // LR Upload / show link
+      const lrTd = tr.children[4];
+      if(inv.lrFileUrl){
+        const a = document.createElement('a'); a.href = inv.lrFileUrl; a.target='_blank';
+        a.textContent = inv.lrFileName || 'View LR';
+        a.className='file-indicator';
+        lrTd.appendChild(a);
+        const btnChange = document.createElement('button'); btnChange.className='small'; btnChange.textContent='Replace';
+        btnChange.addEventListener('click', ()=> triggerUploadForIndex(idx));
+        lrTd.appendChild(btnChange);
+      } else {
+        const btnUpload = document.createElement('button'); btnUpload.className='small btn'; btnUpload.textContent='Upload LR';
+        btnUpload.addEventListener('click', ()=> triggerUploadForIndex(idx));
+        lrTd.appendChild(btnUpload);
+      }
+
+      tempoDetailTableBody.appendChild(tr);
+    });
+  }
+
+  // trigger hidden file input and store index
+  let uploadTargetIndex = null;
+  function triggerUploadForIndex(index){
+    uploadTargetIndex = index;
+    hiddenFile.value = ''; // reset
+    hiddenFile.click();
+  }
+
+  // handle file selection
+  hiddenFile.addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file || uploadTargetIndex === null){ return; }
+    // ensure tempo loaded
+    if(!currentTempoDocId){ alert('No tempo selected'); return; }
+    // create storage path: lr_files/{tempoId}/{invoiceNumber}/{filename}
+    const inv = currentTempoDocData.invoices[uploadTargetIndex];
+    const path = `lr_files/${currentTempoDocData.tempoId || currentTempoDocId}/${inv.invoiceNumber}/${file.name}`;
+    const ref = storageRef(storage, path);
+    const uploadingMsg = 'Uploading LR...';
+    const prevText = document.getElementById('detailTempoId').textContent;
+    try{
+      // upload
+      await uploadBytes(ref, file);
+      const url = await getDownloadURL(ref);
+      // update local doc mirror
+      currentTempoDocData.invoices[uploadTargetIndex].lrFileUrl = url;
+      currentTempoDocData.invoices[uploadTargetIndex].lrFileName = file.name;
+      currentTempoDocData.invoices[uploadTargetIndex].lrUploadedAt = new Date().toISOString();
+      renderTempoDetailTable();
+      alert('LR uploaded. Click Save Loading Status to persist.');
+    }catch(err){ console.error(err); alert('LR upload failed'); }
+    uploadTargetIndex = null;
+  });
+
+  // Save tempo loading status & LR info to Firestore
+  async function saveTempoLoadingStatus(){
+    if(!currentTempoDocId){ alert('No tempo open'); return; }
+    try{
+      await updateDoc(doc(db,'tempo_sheets',currentTempoDocId), {
+        invoices: currentTempoDocData.invoices,
+        updatedAt: serverTimestamp()
+      });
+      alert('Saved tempo loading status.');
+      closeModal('modalTempoDetail');
+    }catch(e){ console.error(e); alert('Error saving tempo status'); }
+  }
+
+  // ========== Printing ==========
+  // Option A: open new window and print only the tempo's content
+  function printTempoById(docId){
+    (async ()=>{
+      try{
+        const snap = await getDoc(doc(db,'tempo_sheets',docId));
+        if(!snap.exists()){ alert('Tempo not found'); return; }
+        const t = snap.data();
+        openPrintWindowForTempo(t);
+      }catch(e){ console.error(e); alert('Print error'); }
+    })();
+  }
+
+  function printTempoFromModal(){
+    if(!currentTempoDocData){ alert('No tempo selected'); return; }
+    openPrintWindowForTempo(currentTempoDocData);
+  }
+
+  function openPrintWindowForTempo(t){
+    // build HTML for print
+    const w = window.open('', '_blank', 'width=900,height=700');
+    const html = `
+    <html><head><title>Print Tempo ${escapeHtmlAttr(t.tempoId||'')}</title>
+      <style>
+        body{font-family:Arial;padding:20px;color:#111}
+        h1{font-size:18px}
+        table{width:100%;border-collapse:collapse;margin-top:10px}
+        th,td{border:1px solid #333;padding:6px;text-align:left}
+        th{background:#f2f2f2}
+        .meta{margin-top:6px}
+      </style>
+    </head><body>
+      <h1>Tempo Sheet — ${escapeHtml(t.tempoId||'')}</h1>
+      <div class="meta"><strong>Vehicle:</strong> ${escapeHtml(t.vehicleNumber||'')} &nbsp; <strong>Date:</strong> ${escapeHtml(t.date||'')}</div>
+      <table>
+        <thead><tr><th>Invoice</th><th>Party</th><th>Products</th><th>Loaded</th><th>LR File</th></tr></thead>
+        <tbody>
+          ${(t.invoices||[]).map(inv => `<tr>
+            <td>${escapeHtml(inv.invoiceNumber||'')}</td>
+            <td>${escapeHtml(inv.partyName||'')}</td>
+            <td>${escapeHtml((inv.products||[]).map(p=>p.productCode+' × '+p.quantity).join('<br/>'))}</td>
+            <td>${inv.loaded ? 'Yes' : 'No'}</td>
+            <td>${inv.lrFileUrl ? '<a href="'+inv.lrFileUrl+'" target="_blank">LR</a>' : ''}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div style="margin-top:12px">Printed: ${new Date().toLocaleString()}</div>
+      <script>setTimeout(()=>{window.print()},300)</script>
+    </body></html>`;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }
+
+  // ===== Utilities =====
+  function escapeHtml(unsafe){ if(!unsafe && unsafe!=='') return ''; return String(unsafe).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+  function escapeHtmlAttr(unsafe){ return (unsafe||'').toString().replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
+
+  // ===== Initial UI: add a product row default for invoice modal when created by button handler =====
+  // (already added in the button handler earlier)
+
+  // ========== End of module ==========
+  </script>
 </body>
 </html>
-
