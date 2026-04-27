@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Wash Management System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        header, footer { background: #333; color: #fff; padding: 10px 20px; text-align: center; }
+        .container { padding: 20px; }
+        .pricing { margin: 20px 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; }
+        input[type="text"], input[type="tel"], input[type="email"] { width: 100%; padding: 8px; }
+        .button { background: #28a745; color: #fff; padding: 10px 15px; border: none; cursor: pointer; }
+        .button:hover { background: #218838; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Car Wash Management System</h1>
+</header>
+<div class="container">
+    <section id="customer-panel">
+        <h2>Customer Panel</h2>
+        <div class="pricing">
+            <h3>Service Pricing</h3>
+            <p>Monthly: ₹999</p>
+            <p>One-time: ₹150</p>
+        </div>
+        <h3>Booking Form</h3>
+        <form id="booking-form">
+            <div class="form-group"><label for="name">Name:</label><input type="text" id="name" required></div>
+            <div class="form-group"><label for="phone">Phone:</label><input type="tel" id="phone" required></div>
+            <div class="form-group"><label for="address">Address:</label><input type="text" id="address" required></div>
+            <div class="form-group"><label for="car-number">Car Number:</label><input type="text" id="car-number" required></div>
+            <div class="form-group"><label for="car-type">Car Type:</label><input type="text" id="car-type" required></div>
+            <div class="form-group"><label for="service-type">Service Type:</label><select id="service-type" required><option value="monthly">Monthly</option><option value="one-time">One-time</option></select></div>
+            <div class="form-group"><label for="time">Preferred Time:</label><input type="text" id="time" placeholder="YYYY-MM-DD HH:MM:SS" required></div>
+            <button type="submit" class="button">Book Now</button>
+        </form>
+        <div id="confirmation-message"></div>
+    </section>
+    <section id="worker-panel">
+        <h2>Worker Panel</h2>
+        <form id="worker-login-form">
+            <div class="form-group"><label for="worker-phone">Phone:</label><input type="tel" id="worker-phone" required></div>
+            <button type="submit" class="button">Login</button>
+        </form>
+        <div id="worker-dashboard" style="display: none;">
+            <h3>Today's Assigned Jobs</h3>
+            <ul id="job-list"></ul>
+        </div>
+    </section>
+    <section id="admin-panel">
+        <h2>Admin Panel</h2>
+        <h3 Dashboard</h3>
+            <p>Total Customers: <span id="total-customers">0</span></p>
+            <p>Today's Jobs: <span id="todays-jobs">0</span></p>
+            <p>Completed Jobs: <span id="completed-jobs">0</span></p>
+            <p>Pending Jobs: <span id="pending-jobs">0</span></p>
+    </section>
+</div>
+<footer>
+    <p>&copy; 2026 Car Wash Management System</p>
+</footer>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+<script>
+    // TODO: Initialize Firebase
+    const firebaseConfig = {/* Your Firebase config here */};
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Booking form submission
+    document.getElementById('booking-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        // TODO: Implement OTP verification and add booking to Firestore
+        document.getElementById('confirmation-message').innerText = 'Booking confirmed!';
+    });
+
+    // Worker login submission
+    document.getElementById('worker-login-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        // TODO: Implement worker login and load assigned jobs
+        document.getElementById('worker-dashboard').style.display = 'block';
+    });
+</script>
+</body>
+</html>
